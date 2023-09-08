@@ -1,12 +1,11 @@
-const express = require('express');
-const { createServer } = require('node:http');
-const { join } = require('node:path');
+import express from 'express';
+import { createServer } from 'node:http';
 
 const app = express();
 const server = createServer(app);
 
 app.get('/', (req, res) => {
-  res.sendFile(join(__dirname, 'index.html'));
+  res.sendFile(new URL('./index.html', import.meta.url).pathname);
 });
 
 server.listen(3000, () => {
