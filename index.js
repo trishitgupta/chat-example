@@ -29,17 +29,35 @@ async function main() {
     res.sendFile(join(__dirname, 'index.html'));
   });
 
-  io.on('connection', (socket) => {
-    socket.on('chat message', async (msg) => {
+  io.on('connection', async (socket) => {
+    socket.on('chat message', async (msg, clientOffset, callback) => {
       let result;
       try {
-        result = await db.run('INSERT INTO messages (content) VALUES (?)', msg);
+        result = await db.run('INSERT INTO messages (content, client_offset) VALUES (?, ?)', msg, clientOffset);
       } catch (e) {
-        // TODO handle the failure
+        if (e.errno === 19 /* SQLITE_CONSTRAINT */ ) {
+          callback();
+        } else {
+          // nothing to do, just let the client retry
+        }
         return;
       }
       io.emit('chat message', msg, result.lastID);
+      callback();
     });
+
+    if (!socket.recovered) {
+      try {
+        await db.each('SELECT id, content FROM messages WHERE id > ?',
+          [socket.handshake.auth.serverOffset || 0],
+          (_err, row) => {
+            socket.emit('chat message', row.content, row.id);
+          }
+        )
+      } catch (e) {
+        // something went wrong
+      }
+    }
   });
 
   server.listen(3000, () => {
