@@ -11,9 +11,9 @@ import { createAdapter, setupPrimary } from '@socket.io/cluster-adapter';
 
 if (cluster.isPrimary) {
   const numCPUs = availableParallelism();
-  for (let i = 0; i < numCPUs; i++) {
+  for (let i = 0; i < 2; i++) {
     cluster.fork({
-      PORT: 3000 + i
+      PORT: 3100 + i
     });
   }
 
